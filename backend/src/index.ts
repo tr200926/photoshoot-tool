@@ -3,9 +3,11 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
+import path from 'path';
 import swaggerUi from 'swagger-ui-express';
 import config from '@config/env';
 import swaggerDocument from '@config/swagger';
+import { DEV_UPLOADS_DIR } from './modules/assets/uploadService';
 import { errorHandler, asyncHandler } from '@middleware/errorHandler';
 import { authMiddleware } from '@middleware/auth';
 import { getPrismaClient } from '@config/database';
@@ -63,6 +65,11 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   });
   next();
 });
+
+// Dev static file server — serves uploaded images at /dev-uploads/*
+if (config.server.nodeEnv !== 'production') {
+  app.use('/dev-uploads', express.static(path.resolve(DEV_UPLOADS_DIR)));
+}
 
 // API Documentation
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {

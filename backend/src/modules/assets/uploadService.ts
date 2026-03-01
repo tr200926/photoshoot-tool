@@ -2,10 +2,15 @@ import { Request } from 'express';
 import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid';
 import multer, { FileFilterCallback } from 'multer';
+import path from 'path';
+import fs from 'fs';
 import { getPrismaClient } from '@config/database';
 import { AppError } from '@middleware/errorHandler';
 import config from '@config/env';
 import AWS from 'aws-sdk';
+
+// Dev uploads directory — files written here are served at /dev-uploads/*
+export const DEV_UPLOADS_DIR = path.join(__dirname, '../../../../dev-uploads');
 
 const prisma = getPrismaClient();
 
@@ -59,8 +64,11 @@ export const uploadToS3 = async (
   key: string,
   mimeType: string,
 ): Promise<string> => {
-  if (!config.aws.accessKeyId || config.aws.accessKeyId === 'your-aws-key') {
-    // Dev fallback: return a placeholder URL
+  if (!config.aws.accessKeyId) {
+    // Dev fallback: write file to disk and serve statically
+    const filePath = path.join(DEV_UPLOADS_DIR, key);
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, buffer);
     return `${config.server.baseUrl}/dev-uploads/${key}`;
   }
 
