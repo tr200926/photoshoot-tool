@@ -38,7 +38,7 @@ export const authMiddleware = async (
     next();
   } catch (err) {
     if (err instanceof jwt.JsonWebTokenError) {
-      throw new AppError('Invalid token', 401, 'INVALID_TOKEN');
+      return next(new AppError('Invalid token', 401, 'INVALID_TOKEN'));
     }
     next(err);
   }
