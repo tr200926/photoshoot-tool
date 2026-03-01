@@ -1,0 +1,197 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  name      String?
+  password  String     // hashed
+  avatar    String?
+  emailVerified Boolean  @default(false)
+  
+  // Relations
+  workspaces WorkspaceMember[]
+  assets     Asset[]
+  jobs       GenerationJob[]
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([email])
+  @@map("users")
+}
+
+model Workspace {
+  id        String     @id @default(cuid())
+  name      String
+  slug      String     @unique
+  description String?
+  plan      String     @default("free") // free, pro, enterprise
+  
+  // Settings
+  aiModelsEnabled Boolean @default(false)
+  custombranding Boolean @default(false)
+  whiteLabel Boolean @default(false)
+  
+  // Limits
+  monthlyCredits Int @default(1000)
+  creditsUsed Int @default(0)
+  
+  // Relations
+  members   WorkspaceMember[]
+  projects  Project[]
+  assets    Asset[]
+  jobs      GenerationJob[]
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([slug])
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id        String     @id @default(cuid())
+  userId    String
+  workspaceId String
+  role      String     @default("member") // admin, editor, viewer
+  
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([userId, workspaceId])
+  @@index([userId])
+  @@index([workspaceId])
+  @@map("workspace_members")
+}
+
+model Project {
+  id        String     @id @default(cuid())
+  workspaceId String
+  name      String
+  description String?
+  
+  // Settings
+  isArchived Boolean @default(false)
+  thumbnail String?
+  
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  assets    Asset[]
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([workspaceId])
+  @@map("projects")
+}
+
+model Asset {
+  id        String     @id @default(cuid())
+  projectId String?
+  workspaceId String
+  userId    String
+  
+  // File info
+  originalFileName String
+  originalUrl String  // S3 URL
+  mimeType  String
+  fileSize  Int       // in bytes
+  width     Int?
+  height    Int?
+  
+  // Processing state
+  status    String    @default("uploaded") // uploaded, processing, ready, failed
+  processingError String?
+  
+  // Generated variants
+  variants  AssetVariant[]
+  
+  // Relations
+  project   Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobs      GenerationJob[]
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([projectId])
+  @@index([workspaceId])
+  @@index([userId])
+  @@map("assets")
+}
+
+model AssetVariant {
+  id        String     @id @default(cuid())
+  assetId   String
+  type      String     // original, transparent-bg, watermarked
+  url       String     // S3 URL
+  width     Int?
+  height    Int?
+  
+  // Relations
+  asset     Asset      @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  
+  @@index([assetId])
+  @@map("asset_variants")
+}
+
+model GenerationJob {
+  id        String     @id @default(cuid())
+  workspaceId String
+  assetId   String?
+  userId    String
+  
+  // Job details
+  jobType   String     // background-removal, environment-generation, compositing
+  status    String     @default("pending") // pending, processing, completed, failed
+  progress  Int        @default(0)
+  error     String?
+  
+  // Input parameters
+  parameters Json?     // JSON for different job types
+  
+  // Output
+  resultUrl String?    // S3 URL to result
+  metadata  Json?      // metadata about the generation
+  
+  // Credits
+  creditsUsed Int      @default(0)
+  estimatedCost Float  @default(0.0)
+  
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  asset     Asset?    @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  startedAt DateTime?
+  completedAt DateTime?
+  
+  @@index([workspaceId])
+  @@index([assetId])
+  @@index([userId])
+  @@index([status])
+  @@map("generation_jobs")
+}
