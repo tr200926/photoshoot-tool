@@ -50,6 +50,7 @@ export interface GenerationJob {
   assetId?: string;
   resultUrl?: string;
   error?: string;
+  parameters?: Record<string, unknown>;
   creditsUsed: number;
   estimatedCost: number;
   createdAt: string;

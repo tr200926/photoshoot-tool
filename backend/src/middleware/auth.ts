@@ -47,7 +47,7 @@ export const authMiddleware = async (
 export const generateToken = (userId: string, workspaceId: string, role: string): string => {
   return jwt.sign(
     { userId, workspaceId, role },
-    config.jwt.secret,
-    { expiresIn: config.jwt.expiry },
+    config.jwt.secret as jwt.Secret,
+    { expiresIn: '7d' },
   );
 };

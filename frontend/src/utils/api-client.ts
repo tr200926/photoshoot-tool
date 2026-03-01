@@ -13,21 +13,19 @@ export const initializeApiClient = (token?: string) => {
     },
   });
 
-  // Add request interceptor for token
   apiClient.interceptors.request.use((config) => {
-    const storedToken = localStorage.getItem('auth_token');
+    const storedToken =
+      typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
     if (storedToken && config.headers) {
       config.headers.Authorization = `Bearer ${storedToken}`;
     }
     return config;
   });
 
-  // Add response interceptor for error handling
   apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
-      if (error.response?.status === 401) {
-        // Clear token and redirect to login
+      if (error.response?.status === 401 && typeof window !== 'undefined') {
         localStorage.removeItem('auth_token');
         window.location.href = '/login';
       }
@@ -39,9 +37,7 @@ export const initializeApiClient = (token?: string) => {
 };
 
 export const getApiClient = (): AxiosInstance => {
-  if (!apiClient) {
-    initializeApiClient();
-  }
+  if (!apiClient) initializeApiClient();
   return apiClient!;
 };
 
