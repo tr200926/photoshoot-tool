@@ -46,7 +46,7 @@ app.use(helmet());
 app.use(cors({
   origin: config.server.nodeEnv === 'production'
     ? ['https://photoshoot.app']
-    : ['http://localhost:3000', 'http://localhost:3001'],
+    : (_origin, cb) => cb(null, true), // allow all localhost origins in dev
   credentials: true,
 }));
 app.use(compression());
@@ -90,6 +90,17 @@ app.get('/health', asyncHandler(async (_req: Request, res: Response) => {
     });
   }
 }));
+
+// Root welcome
+app.get('/', (_req: Request, res: Response) => {
+  res.json({
+    name: 'PhotoshootAI API',
+    version: '1.0.0',
+    status: 'running',
+    docs: '/api/docs',
+    health: '/health',
+  });
+});
 
 // API Routes
 app.use('/api/auth', authLimiter, authRoutes);
