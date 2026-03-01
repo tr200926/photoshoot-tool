@@ -64,7 +64,8 @@ export const uploadToS3 = async (
   key: string,
   mimeType: string,
 ): Promise<string> => {
-  if (!config.aws.accessKeyId) {
+  const isDevMode = !config.aws.accessKeyId || ['your-aws-key', 'mock-key', 'test'].includes(config.aws.accessKeyId);
+  if (isDevMode) {
     // Dev fallback: write file to disk and serve statically
     const filePath = path.join(DEV_UPLOADS_DIR, key);
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
